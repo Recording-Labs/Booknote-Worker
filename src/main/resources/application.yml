@@ -58,6 +58,7 @@ spring:
 kafka:
   topic:
     book-events: booknote.book.events
+    note-events: booknote.note.events
 
 server:
   http2:

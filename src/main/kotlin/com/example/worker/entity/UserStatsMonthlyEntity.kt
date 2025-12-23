@@ -24,7 +24,7 @@ class UserStatsMonthlyEntity(
 
     @Column(name = "page_count")
     var pageCount: Int = 0
-) {
+) : BaseEntity() {
     // JPA 기본 생성자
     protected constructor() : this(null, 0L, "", "")
 

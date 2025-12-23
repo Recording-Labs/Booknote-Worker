@@ -18,7 +18,7 @@ class UserStatsCategoryEntity(
 
     @Column(name = "count")
     var count: Int = 0
-) {
+) : BaseEntity(){
     protected constructor() : this(null, 0L, "")
 
     fun increaseCount() {

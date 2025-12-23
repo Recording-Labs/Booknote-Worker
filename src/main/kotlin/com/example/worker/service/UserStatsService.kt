@@ -1,13 +1,19 @@
 package com.example.worker.service
 
 import com.example.worker.dto.BookEventDto
+import com.example.worker.dto.NoteEventDto
+import com.example.worker.entity.UserStatsActivityEntity
 import com.example.worker.entity.UserStatsCategoryEntity
 import com.example.worker.entity.UserStatsMonthlyEntity
 import com.example.worker.entity.UserStatsSummaryEntity
+import com.example.worker.entity.UserStatsTagEntity
+import com.example.worker.repository.NoteTagRepository
 import com.example.worker.repository.UserBookRepository
+import com.example.worker.repository.UserStatsActivityRepository
 import com.example.worker.repository.UserStatsCategoryRepository
 import com.example.worker.repository.UserStatsMonthlyRepository
 import com.example.worker.repository.UserStatsSummaryRepository
+import com.example.worker.repository.UserStatsTagRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,33 +25,27 @@ class UserStatsService(
     private val monthlyRepository: UserStatsMonthlyRepository,
     private val categoryRepository: UserStatsCategoryRepository,
     private val userBookRepository: UserBookRepository,
+    private val activityRepository: UserStatsActivityRepository,
+    private val tagRepository: UserStatsTagRepository,
+    private val noteTagRepository: NoteTagRepository
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    /**
-     * 책 추가 이벤트 처리 (총 권수 재계산)
-     */
     @Transactional
-    fun handleBookAdded(userId: Long) {
-        // 1. QueryDSL로 실제 DB 카운트 조회 (Source of Truth)
-        val realBookCount = userBookRepository.getBookCount(userId)
-        val realNoteCount = userBookRepository.getNoteCount(userId)
+    fun handleBookAdded(event: BookEventDto) {
+        val realBookCount = userBookRepository.getBookCount(event.userId)
+        val realNoteCount = userBookRepository.getNoteCount(event.userId)
 
-        // 2. 통계 테이블 조회 및 업데이트 (Upsert)
-        val summary = summaryRepository.findById(userId)
-            .orElseGet { UserStatsSummaryEntity(userId = userId) }
+        val summary = summaryRepository.findById(event.userId)
+            .orElseGet { UserStatsSummaryEntity(userId = event.userId) }
 
-        // 기존 +1 방식 대신 실제 값으로 덮어쓰기
         summary.totalBooks = realBookCount.toInt()
         summary.totalNotes = realNoteCount.toInt()
         summaryRepository.save(summary)
+        updateMonthlyAndCategoryStats(event)
 
-        logger.info("✅ User($userId): Book Added Stats Recalculated (Total: $realBookCount)")
+        logger.info("✅ User($event.userId): Book Added Stats Recalculated (Total: $realBookCount)")
     }
-
-    /**
-     * 책 완독 이벤트 처리 (완독수, 페이지수 재계산)
-     */
     @Transactional
     fun handleBookFinished(event: BookEventDto) {
         val userId = event.userId
@@ -74,48 +74,82 @@ class UserStatsService(
 
         logger.info("✅ User($userId): Read Stats Recalculated (Read: $realReadCount, Pages: $realTotalPages)")
     }
-
-    private fun updateMonthlyAndCategoryStats(event: BookEventDto) {
+    @Transactional
+     fun updateMonthlyAndCategoryStats(event: BookEventDto) {
         val userId = event.userId
 
-        // 1. 날짜 및 기간 계산
         val finishedDate = if (event.finishedAt != null) {
             LocalDate.parse(event.finishedAt.substring(0, 10))
         } else {
             LocalDate.now()
         }
+
         val year = finishedDate.year.toString()
         val month = String.format("%02d", finishedDate.monthValue)
 
-        // 해당 월의 시작과 끝 시간 계산 (예: 2024-05-01 00:00 ~ 2024-05-31 23:59:59)
         val startDateTime = finishedDate.withDayOfMonth(1).atStartOfDay()
         val endDateTime = finishedDate.withDayOfMonth(finishedDate.lengthOfMonth()).atTime(23, 59, 59)
 
-
-        // --- [A. 월별 통계 재계산] ---
         val realMonthlyReadCount = userBookRepository.getMonthlyFinishedCount(userId, startDateTime, endDateTime)
         val realMonthlyPageCount = userBookRepository.getMonthlyTotalPages(userId, startDateTime, endDateTime)
 
         val monthly = monthlyRepository.findByUserIdAndYearAndMonth(userId, year, month)
             ?: UserStatsMonthlyEntity(userId = userId, year = year, month = month)
 
-        // 덮어쓰기 (Upsert)
         monthly.readCount = realMonthlyReadCount.toInt()
         monthly.pageCount = realMonthlyPageCount.toInt()
         monthlyRepository.save(monthly)
         logger.info("✅ User($userId): Update Stats Monthly (Read: $realMonthlyReadCount, Pages: $realMonthlyPageCount)")
 
-
-        // --- [B. 카테고리 통계 재계산] ---
         if (!event.category.isNullOrEmpty()) {
             val realCategoryCount = userBookRepository.getCategoryFinishedCount(userId, event.category)
 
             val category = categoryRepository.findByUserIdAndCategoryCode(userId, event.category)
                 ?: UserStatsCategoryEntity(userId = userId, categoryCode = event.category)
 
-            // 덮어쓰기 (Upsert)
-            category.count = realCategoryCount.toInt()
+            category.count = realCategoryCount.toInt()+1
             categoryRepository.save(category)
+        }
+    }
+
+    @Transactional
+     fun updateActivityStats(userId: Long) {
+        val today = LocalDate.now()
+
+        val activityEntity = activityRepository.findByUserId(userId)
+            ?: UserStatsActivityEntity(userId = userId)
+
+        activityEntity.updateStreak(today)
+
+        activityRepository.save(activityEntity)
+    }
+
+    @Transactional
+    fun updateTagStats(userId: Long, tags: List<String>) {
+        tags.forEach { tagName ->
+            val tagEntity = tagRepository.findByUserIdAndTagName(userId, tagName)
+                ?: UserStatsTagEntity(userId = userId, tagName = tagName)
+
+            tagEntity.increment()
+
+            tagRepository.save(tagEntity)
+        }
+    }
+
+    @Transactional
+    fun handleNoteAdded(event: NoteEventDto) {
+        val userId = event.userId
+        val noteId = event.noteId
+        val tags = event.tags
+
+        tags.forEach { tagName ->
+            val tagRealCount = noteTagRepository.getTagCount(noteId, tagName)
+            val tagEntity = tagRepository.findByUserIdAndTagName(userId, tagName)
+                ?: UserStatsTagEntity(userId = userId, tagName = tagName)
+
+            tagEntity.usageCount = tagRealCount.toInt()
+
+            tagRepository.save(tagEntity)
         }
     }
 }
