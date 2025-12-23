@@ -1,0 +1,77 @@
+name: Build and Deploy on Tag
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to registry.booknote.site
+        uses: docker/login-action@v3
+        with:
+          registry: registry.booknote.site
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: registry.booknote.site/booknote-worker
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+#      - name: Generate runtime env file
+#        run: |
+#          cat > runtime.env <<'EOF'
+#          DB_URL=${{ secrets.DB_URL }}
+#          DB_USERNAME=${{ secrets.DB_USERNAME }}
+#          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+#          NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
+#          NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
+#          REDIS_HOST=${{ secrets.REDIS_HOST }}
+#          REDIS_PORT=${{ secrets.REDIS_PORT }}
+#          REDIS_TOKEN=${{ secrets.REDIS_TOKEN }}
+#          REDIS_USE_TLS=${{ secrets.REDIS_USE_TLS }}
+#          SPRING_PROFILES_ACTIVE=prod
+#          EOF
+#          echo "ENV_B64=$(base64 -w0 runtime.env)" >> $GITHUB_ENV
+
+      - name: Notify deploy webhook with env
+        env:
+          TAG: ${{ github.ref_name }}
+          AUTH: ${{ secrets.WEBHOOK_AUTH_KEY }}
+        run: |
+          payload=$(jq -n \
+            --arg status "success" \
+            --arg msg "Deployment requested for tag ${TAG}" \
+            --arg key "${AUTH}" \
+            --arg svc "BooknoteWorker" \
+            --arg tag "${TAG}" \
+            '{status:$status, message:$msg, authKey:$key, serviceName:$svc, tag:$tag}')
+          curl -sS -X POST https://webhook.booknote.site \
+            -H "Content-Type: application/json" \
+            -d "$payload"
