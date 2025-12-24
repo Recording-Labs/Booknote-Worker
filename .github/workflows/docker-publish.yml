@@ -64,7 +64,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
           AUTH: ${{ secrets.WEBHOOK_AUTH_KEY }}
-        run: |
+        run: | 
           payload=$(jq -n \
             --arg status "success" \
             --arg msg "Deployment requested for tag ${TAG}" \
