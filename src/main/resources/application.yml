@@ -59,6 +59,7 @@ kafka:
   topic:
     book-events: booknote.book.events
     note-events: booknote.note.events
+    quote-events: booknote.quote.events
 
 server:
   http2:

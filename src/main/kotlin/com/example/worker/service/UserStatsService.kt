@@ -2,6 +2,7 @@ package com.example.worker.service
 
 import com.example.worker.dto.BookEventDto
 import com.example.worker.dto.NoteEventDto
+import com.example.worker.dto.QuoteEventDto
 import com.example.worker.entity.UserStatsActivityEntity
 import com.example.worker.entity.UserStatsCategoryEntity
 import com.example.worker.entity.UserStatsMonthlyEntity
@@ -43,6 +44,7 @@ class UserStatsService(
         summary.totalNotes = realNoteCount.toInt()
         summaryRepository.save(summary)
         updateMonthlyAndCategoryStats(event)
+        updateActivityStats(event.userId)
 
         logger.info("✅ User($event.userId): Book Added Stats Recalculated (Total: $realBookCount)")
     }
@@ -151,5 +153,27 @@ class UserStatsService(
 
             tagRepository.save(tagEntity)
         }
+        updateActivityStats(userId)
+    }
+
+    @Transactional
+    fun handleNoteUpdated(event: NoteEventDto) {
+        val userId = event.userId
+
+        updateActivityStats(userId)
+    }
+
+    @Transactional
+    fun handleQuoteAdded(event: QuoteEventDto) {
+        val userId = event.userId
+
+        updateActivityStats(userId)
+    }
+
+    @Transactional
+    fun handleQuoteUpdated(event: QuoteEventDto) {
+        val userId = event.userId
+
+        updateActivityStats(userId)
     }
 }
