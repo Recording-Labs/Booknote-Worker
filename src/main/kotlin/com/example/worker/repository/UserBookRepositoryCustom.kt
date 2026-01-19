@@ -1,6 +1,6 @@
 package com.example.worker.repository
 
-import com.example.worker.entity.UserBookEntity
+import com.example.worker.entity.book.UserBookEntity
 import java.time.LocalDateTime
 
 interface UserBookRepositoryCustom {

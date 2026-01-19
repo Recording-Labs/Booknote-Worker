@@ -1,7 +1,7 @@
-package com.example.worker.entity
+package com.example.worker.entity.stat
 
+import com.example.worker.entity.BaseEntity
 import jakarta.persistence.*
-import org.hibernate.annotations.DynamicUpdate
 
 @Entity
 @Table(name = "user_stats_category")

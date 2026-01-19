@@ -3,11 +3,12 @@ package com.example.worker.service
 import com.example.worker.dto.BookEventDto
 import com.example.worker.dto.NoteEventDto
 import com.example.worker.dto.QuoteEventDto
-import com.example.worker.entity.UserStatsActivityEntity
-import com.example.worker.entity.UserStatsCategoryEntity
-import com.example.worker.entity.UserStatsMonthlyEntity
-import com.example.worker.entity.UserStatsSummaryEntity
-import com.example.worker.entity.UserStatsTagEntity
+import com.example.worker.entity.review.ReviewItemType
+import com.example.worker.entity.stat.UserStatsActivityEntity
+import com.example.worker.entity.stat.UserStatsCategoryEntity
+import com.example.worker.entity.stat.UserStatsMonthlyEntity
+import com.example.worker.entity.stat.UserStatsSummaryEntity
+import com.example.worker.entity.stat.UserStatsTagEntity
 import com.example.worker.repository.NoteTagRepository
 import com.example.worker.repository.UserBookRepository
 import com.example.worker.repository.UserStatsActivityRepository
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Service
 class UserStatsService(
@@ -28,7 +30,9 @@ class UserStatsService(
     private val userBookRepository: UserBookRepository,
     private val activityRepository: UserStatsActivityRepository,
     private val tagRepository: UserStatsTagRepository,
-    private val noteTagRepository: NoteTagRepository
+    private val noteTagRepository: NoteTagRepository,
+    private val reviewService: ReviewService,
+    private val activityService: ActivityService,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -142,6 +146,7 @@ class UserStatsService(
     fun handleNoteAdded(event: NoteEventDto) {
         val userId = event.userId
         val noteId = event.noteId
+        val bookId = event.bookId
         val tags = event.tags
 
         tags.forEach { tagName ->
@@ -153,6 +158,20 @@ class UserStatsService(
 
             tagRepository.save(tagEntity)
         }
+
+        reviewService.createReviewItemForContent(
+            userId = userId,
+            itemType = ReviewItemType.NOTE,
+            itemId = noteId,
+            createdAt = LocalDateTime.now(),
+        )
+
+        activityService.recordNoteActivity(
+            userId = userId,
+            bookId = bookId,
+            content = ""
+        )
+
         updateActivityStats(userId)
     }
 

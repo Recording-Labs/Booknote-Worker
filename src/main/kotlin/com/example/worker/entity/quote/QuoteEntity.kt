@@ -1,5 +1,6 @@
-package com.example.worker.entity
+package com.example.worker.entity.quote
 
+import com.example.worker.entity.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue

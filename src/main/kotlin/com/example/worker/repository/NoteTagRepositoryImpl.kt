@@ -1,8 +1,8 @@
 package com.example.worker.repository
 
-import com.example.worker.entity.QNoteTagEntity.noteTagEntity
-import com.example.worker.entity.QTagEntity.tagEntity
-import com.example.worker.entity.QUserBookEntity.userBookEntity
+import com.example.worker.entity.note.QNoteTagEntity.noteTagEntity
+import com.example.worker.entity.tag.QTagEntity.tagEntity
+import com.example.worker.entity.book.QUserBookEntity.userBookEntity
 import com.querydsl.core.QueryFactory
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Repository

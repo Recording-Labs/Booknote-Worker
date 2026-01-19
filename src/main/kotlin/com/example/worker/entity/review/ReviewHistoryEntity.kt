@@ -1,16 +1,14 @@
-package com.example.worker.entity
+package com.example.worker.entity.review
 
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.Table
 
 @Entity
-@Table(name = "tags")
-class TagEntity(
+class ReviewHistoryEntity (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long?=null,
-    var name: String,
-): BaseEntity()
+    var id: Long? = null,
+
+)

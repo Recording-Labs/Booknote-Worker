@@ -1,8 +1,8 @@
 package com.example.worker.repository
 
-import com.example.worker.entity.QUserBookEntity.userBookEntity
-import com.example.worker.entity.QNoteEntity.noteEntity
-import com.example.worker.entity.UserBookEntity
+import com.example.worker.entity.book.QUserBookEntity.userBookEntity
+import com.example.worker.entity.note.QNoteEntity.noteEntity
+import com.example.worker.entity.book.UserBookEntity
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime

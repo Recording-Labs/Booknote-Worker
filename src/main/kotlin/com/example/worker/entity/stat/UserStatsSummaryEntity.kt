@@ -1,7 +1,6 @@
-package com.example.worker.entity
+package com.example.worker.entity.stat
 
 import jakarta.persistence.*
-import org.hibernate.annotations.DynamicUpdate
 import org.springframework.data.annotation.LastModifiedDate
 import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.LocalDateTime

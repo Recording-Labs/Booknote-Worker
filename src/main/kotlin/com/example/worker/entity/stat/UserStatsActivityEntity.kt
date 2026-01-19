@@ -1,5 +1,6 @@
-package com.example.worker.entity
+package com.example.worker.entity.stat
 
+import com.example.worker.entity.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDate
 

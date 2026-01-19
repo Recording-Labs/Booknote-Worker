@@ -1,6 +1,6 @@
 package com.example.worker.repository
 
-import com.example.worker.entity.UserStatsTagEntity
+import com.example.worker.entity.stat.UserStatsTagEntity
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
