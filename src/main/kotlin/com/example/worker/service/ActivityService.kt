@@ -22,4 +22,21 @@ class ActivityService (
         )
         activityRepository.save(activity)
     }
+
+    /**
+     * 인용구 추가 활동 기록
+     */
+    @Transactional
+    fun recordQuoteActivity(userId: Long, bookId: Long) {
+        val activity = UserActivityEntity(
+            null,
+            userId,
+            "quote", // 인용구 타입으로 기록
+            bookId,
+            null,
+            null,
+            false
+        )
+        activityRepository.save(activity)
+    }
 }

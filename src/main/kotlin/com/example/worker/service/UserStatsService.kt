@@ -185,6 +185,23 @@ class UserStatsService(
     @Transactional
     fun handleQuoteAdded(event: QuoteEventDto) {
         val userId = event.userId
+        val bookId = event.bookId
+        val quoteId = event.quoteId
+
+
+        reviewService.createReviewItemForContent(
+            userId = userId,
+            itemType = ReviewItemType.NOTE,
+            itemId = quoteId,
+            createdAt = LocalDateTime.now(),
+        )
+
+        activityService.recordQuoteActivity(
+            userId = userId,
+            bookId = bookId
+        )
+
+
 
         updateActivityStats(userId)
     }
